@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "last_updated": "<<<FILL: تاريخ آخر تحديث للبيانات>>>",
+    "base_year": 2018,
+    "sources": {
+      "inflation": "<<<FILL: مصدر التضخم / الرقم القياسي للأسعار، مثلاً البنك المركزي المصري CBE>>>",
+      "gold_price_egp": "<<<FILL: مصدر متوسط سعر جرام الذهب عيار 24 بالجنيه>>>",
+      "bank_certificate": "<<<FILL: مصدر متوسط العائد السنوي للشهادات البنكية>>>"
+    },
+    "is_placeholder": true
+  },
+  "yearly": {
+    "2018": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2019": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2020": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2021": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2022": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2023": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2024": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2025": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
+    "2026": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null }
+  }
+}
