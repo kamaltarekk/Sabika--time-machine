@@ -239,7 +239,7 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
             <PathBar result={journey.paths.gold} />
           </div>
           <CertificateNote />
-          <GoldPriceNote />
+          <GoldPriceNote goldSourceType={journey.paths.gold.sourceType} />
           <p className="step__sub" style={{ marginTop: 16, marginBottom: 0 }}>
             الهدف اتحرّك لقدام، والكاش الواقف بقى يغطّي أقل. الذهب أداة حفظ قيمة تاريخيًا قدام التضخم.
           </p>

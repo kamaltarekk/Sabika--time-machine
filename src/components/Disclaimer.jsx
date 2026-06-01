@@ -13,8 +13,24 @@ export default function Disclaimer() {
   );
 }
 
-/** ملاحظة منهجية تحت مسار الذهب/الفضة. */
-export function GoldPriceNote() {
+/**
+ * ملاحظة منهجية تحت مسار الذهب/الفضة.
+ * goldSourceType: 'external_reconstructed' | 'sabika_reference' | null
+ * - external_reconstructed → أسعار عالمية مرجعية محوّلة بسعر صرف تاريخي.
+ * - sabika_reference (أو null) → أسعار مرجعية من سبيكة.
+ * مهم: لا نستخدم "سعر سبيكة" للسنوات التي مصدرها external_reconstructed.
+ */
+export function GoldPriceNote({ goldSourceType }) {
+  if (goldSourceType === 'external_reconstructed') {
+    return (
+      <p className="method-note">
+        أسعار الذهب والفضة المستخدمة أسعار مرجعية توضيحية. قبل توافر بيانات سبيكة
+        التاريخية، يتم استخدام أسعار عالمية مرجعية محوّلة للجنيه المصري بسعر صرف
+        تاريخي. ومن تاريخ توافر بيانات سبيكة، يتم استخدام أسعار سبيكة المرجعية. وقد
+        يختلف سعر التنفيذ الفعلي حسب فروق البيع والشراء والرسوم وقت العملية.
+      </p>
+    );
+  }
   return (
     <p className="method-note">
       أسعار الذهب والفضة المستخدمة أسعار مرجعية من سبيكة، وقد يختلف سعر التنفيذ

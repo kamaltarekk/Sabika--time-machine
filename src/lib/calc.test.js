@@ -7,6 +7,7 @@ import {
   getDataStatus,
   isDataUsable,
   hasYearData,
+  getGoldSourceType,
   goalPriceAtYear,
   cashPath,
   certificatePath,
@@ -167,5 +168,43 @@ describe('validation — getDataStatus / isDataUsable', () => {
     d.annual[2018].silver_price_egp = null;
     d.current.silver_price_egp = null;
     expect(isDataUsable(d)).toBe(true);
+  });
+
+  it('بيمنع لو gold_source_type قيمة غير صالحة', () => {
+    const d = clone(fixture);
+    d.annual[2018].gold_source_type = 'unknown_source';
+    expect(getDataStatus(d).code).toBe('BAD_SOURCE_TYPE');
+  });
+
+  it('بيقبل gold_source_type صالح', () => {
+    const d = clone(fixture);
+    d.annual[2018].gold_source_type = 'external_reconstructed';
+    d.annual[2019].gold_source_type = 'sabika_reference';
+    d.annual[2020].gold_source_type = 'sabika_reference';
+    expect(isDataUsable(d)).toBe(true);
+  });
+});
+
+describe('gold source type propagation', () => {
+  it('getGoldSourceType بيرجّع القيمة الموجودة', () => {
+    const d = clone(fixture);
+    d.annual[2018].gold_source_type = 'external_reconstructed';
+    expect(getGoldSourceType(d, 2018)).toBe('external_reconstructed');
+  });
+
+  it('getGoldSourceType بيرجّع null لو مش موجود', () => {
+    expect(getGoldSourceType(fixture, 2018)).toBeNull();
+  });
+
+  it('goldPath بيضيف sourceType على النتيجة', () => {
+    const d = clone(fixture);
+    d.annual[2018].gold_source_type = 'external_reconstructed';
+    const r = goldPath(12100, 2018, d);
+    expect(r.sourceType).toBe('external_reconstructed');
+  });
+
+  it('goldPath.sourceType يكون null لو مفيش gold_source_type في الداتا', () => {
+    const r = goldPath(12100, 2018, fixture);
+    expect(r.sourceType).toBeNull();
   });
 });

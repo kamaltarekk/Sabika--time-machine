@@ -37,6 +37,9 @@ const MAX_DECIMAL_RATE = 1; // 1 أو أكتر = اتكتب 18 بدل 0.18
 const REQUIRED_ANNUAL_FIELDS = ['cpi_index', 'gold_gram_egp', 'certificate_rate'];
 const REQUIRED_CURRENT_FIELDS = ['cpi_index', 'gold_gram_egp'];
 
+// القيم الصالحة لـ gold_source_type / silver_source_type.
+const VALID_SOURCE_TYPES = ['external_reconstructed', 'sabika_reference'];
+
 /** بيرجّع سنين الـ annual مرتبة تصاعدياً كأرقام. */
 export function getYears(data) {
   return Object.keys(data?.annual ?? {})
@@ -102,6 +105,14 @@ export function getDataStatus(data) {
     if (cpiCheck) return cpiCheck;
     const rateCheck = checkRate(row.certificate_rate, `annual.${y}.certificate_rate`);
     if (rateCheck) return rateCheck;
+    // gold_source_type لازم يكون قيمة صالحة لو موجود
+    if (row.gold_source_type != null && !VALID_SOURCE_TYPES.includes(row.gold_source_type)) {
+      return {
+        usable: false,
+        code: 'BAD_SOURCE_TYPE',
+        reason: `annual.${y}.gold_source_type قيمة غير صالحة: "${row.gold_source_type}"`,
+      };
+    }
   }
 
   // المرجع الحالي
@@ -119,6 +130,14 @@ export function getDataStatus(data) {
 /** اختصار: هل ممكن نعرض نتائج نهائية ونولّد الكارت؟ */
 export function isDataUsable(data) {
   return getDataStatus(data).usable;
+}
+
+/**
+ * بيرجّع gold_source_type لسنة معيّنة ('external_reconstructed' | 'sabika_reference' | null).
+ * الـ UI بيستخدمه لعرض النص المناسب في ملاحظة المصدر.
+ */
+export function getGoldSourceType(data, year) {
+  return data?.annual?.[year]?.gold_source_type ?? null;
 }
 
 /** بيتأكد إن قيمة معيّنة من annual متاحة للسنة المطلوبة (قبل الحساب). */
@@ -218,6 +237,8 @@ export function goldPath(goalToday, startYear, data, goalAtStartOverride = null)
   const valueToday = grams * goldNow;
   const result = buildResult('gold', goalAtStart, valueToday, goalToday);
   result.grams = grams;
+  // sourceType بيُحدّد النص المناسب في الـ UI (مصدر السعر: سبيكة أو خارجي مُرجَع).
+  result.sourceType = data.annual[startYear]?.gold_source_type ?? null;
   return result;
 }
 
