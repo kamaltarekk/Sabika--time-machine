@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import data from './data/economic-data.json';
 import { CTA, isInstallUrlReady } from './config.js';
 import { GOALS, getGoal } from './goals.js';
@@ -18,18 +18,35 @@ import ShareCard from './components/ShareCard.jsx';
 const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.png`;
 const STEPS = ['goal', 'price', 'year', 'past', 'future', 'card', 'cta'];
 
+/**
+ * بيجمّع مشاكل الجاهزية للمطوّر فقط (تفاصيل تقنية). متُعرضش للمستخدم أبدًا —
+ * بتروح console في الـ DEV بس.
+ */
+function collectDevIssues(dataStatus) {
+  const issues = [];
+  if (!dataStatus.usable) {
+    issues.push(`data not usable [${dataStatus.code}]: ${dataStatus.reason}`);
+  }
+  if (!isInstallUrlReady()) {
+    issues.push('config: CTA.installUrl is not set (placeholder)');
+  }
+  return issues;
+}
+
 export default function App() {
   const dataStatus = useMemo(() => getDataStatus(data), []);
   const usable = dataStatus.usable;
+  const devIssues = useMemo(() => collectDevIssues(dataStatus), [dataStatus]);
+
+  // التفاصيل التقنية في console فقط، وفي الـ DEV بس — ممنوع render في الشاشة.
+  useEffect(() => {
+    if (import.meta.env.DEV && devIssues.length) {
+      console.warn('[Sabika Readiness Issues]', devIssues);
+    }
+  }, [devIssues]);
+
   // اختيار السنوات بيتولّد من annual المتاحة — مش hardcoded.
   const years = useMemo(() => getYears(data), []);
-  const latestCompleteYear = useMemo(() => {
-    try {
-      return getLatestCompleteYear(data);
-    } catch {
-      return null;
-    }
-  }, []);
 
   const [stepIdx, setStepIdx] = useState(0);
   const [goalId, setGoalId] = useState(null);
@@ -109,27 +126,21 @@ export default function App() {
       {step === 'past' && (
         <PastStep
           usable={usable}
-          reason={dataStatus.reason}
           journey={journey}
           startYear={startYear}
           goalLabel={goalLabel}
         />
       )}
 
-      {step === 'future' && (
-        <FutureStep usable={usable} reason={dataStatus.reason} future={future} />
-      )}
+      {step === 'future' && <FutureStep usable={usable} future={future} />}
 
       {step === 'card' && (
-        <CardStep
-          usable={usable}
-          reason={dataStatus.reason}
-          journey={journey}
-          goalLabel={goalLabel}
-        />
+        <CardStep usable={usable} journey={journey} goalLabel={goalLabel} />
       )}
 
       {step === 'cta' && <CtaStep />}
+
+      <DevPanel issues={devIssues} />
 
       {step !== 'cta' && (
         <div className="actions">
@@ -144,6 +155,26 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * لوحة تشخيص للمطوّر فقط — متظهرش إلا في DEV ومع VITE_SHOW_DEV_PANEL='true'.
+ * مطويّة افتراضيًا. مش جزء من تجربة المستخدم العادية إطلاقًا.
+ */
+function DevPanel({ issues }) {
+  const enabled =
+    import.meta.env.DEV && import.meta.env.VITE_SHOW_DEV_PANEL === 'true';
+  if (!enabled || !issues.length) return null;
+  return (
+    <details className="dev-panel">
+      <summary>Dev: readiness issues ({issues.length})</summary>
+      <ul>
+        {issues.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -221,7 +252,7 @@ function YearStep({ years, startYear, setStartYear }) {
   );
 }
 
-function PastStep({ usable, reason, journey, startYear, goalLabel }) {
+function PastStep({ usable, journey, startYear, goalLabel }) {
   return (
     <div className="step">
       <h1 className="step__title">من سنة {startYear} لحد النهارده</h1>
@@ -229,7 +260,7 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
         المبلغ اللي كان يكفّي {goalLabel} كامل سنة {startYear} — يغطّي قدّ إيه منه النهارده في كل مسار؟
       </p>
 
-      {!usable && <PlaceholderWarning reason={reason} />}
+      {!usable && <PlaceholderWarning />}
 
       {usable && journey && (
         <>
@@ -250,7 +281,7 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
   );
 }
 
-function FutureStep({ usable, reason, future }) {
+function FutureStep({ usable, future }) {
   return (
     <div className="step">
       <h1 className="step__title">وبكرة؟ الهدف بيكمّل مشوار</h1>
@@ -258,7 +289,7 @@ function FutureStep({ usable, reason, future }) {
         طول ما الأسعار بتتحرّك لقدام، الكاش الواقف بيغطّي نسبة أقل من الهدف سنة ورا سنة. المسافة دي بتكبر.
       </p>
 
-      {!usable && <PlaceholderWarning reason={reason} />}
+      {!usable && <PlaceholderWarning />}
 
       {usable && future && (
         <>
@@ -291,7 +322,7 @@ function FutureStep({ usable, reason, future }) {
   );
 }
 
-function CardStep({ usable, reason, journey, goalLabel }) {
+function CardStep({ usable, journey, goalLabel }) {
   const goldShare = journey?.paths.gold.share;
   return (
     <div className="step">
@@ -307,10 +338,10 @@ function CardStep({ usable, reason, journey, goalLabel }) {
         </>
       ) : (
         <>
-          <h1 className="step__title">الكارت لسه مش جاهز</h1>
-          <PlaceholderWarning reason={reason} />
-          <p className="step__sub">
-            مينفعش نطلّع كارت للمشاركة بأرقام تجريبية أو ناقصة. لازم البيانات الحقيقية تتملا الأول.
+          <h1 className="step__title">النتيجة لسه مش جاهزة</h1>
+          <p className="step__sub" style={{ marginBottom: 0 }}>
+            مينفعش نطلع كارت للمشاركة بأرقام تجريبية أو ناقصة. لازم البيانات الحقيقية
+            تتحط الأول.
           </p>
         </>
       )}
@@ -332,10 +363,9 @@ function CtaStep() {
       </p>
       <div style={{ marginTop: 'auto', width: '100%', paddingTop: 22 }}>
         {!ready && (
-          <div className="placeholder-warning">
-            <strong>⚠️ رابط التثبيت مش متظبط</strong>
-            حط الـ Adjust install URL في <code>src/config.js</code> قبل النشر.
-          </div>
+          <p className="step__sub" style={{ textAlign: 'center' }}>
+            التحميل هيكون متاح قريبًا.
+          </p>
         )}
         <button className="btn btn--cta" onClick={open} disabled={!ready}>
           {CTA.label}
