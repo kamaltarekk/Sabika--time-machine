@@ -2,8 +2,8 @@
 
 تول تفاعلي (Vite + React، client-side بالكامل) لبراند سبيكة. المستخدم يختار هدف
 وسعره النهارده وسنة بداية، ويشوف رحلة فلوسه عبر **3 مسارات**: كاش خامل / شهادة
-بنكية / ذهب — في الماضي، وإسقاط توضيحي للمستقبل، وكارت قابل للمشاركة، وينتهي
-بـ CTA لفتح حساب في تطبيق سبيكة (Direct install).
+بنكية / ذهب — في الماضي، وسيناريو توضيحي للمستقبل، وكارت قابل للمشاركة، وينتهي
+بـ CTA لفتح حساب في تطبيق سبيكة (Direct install عبر Adjust).
 
 ## التشغيل
 
@@ -18,48 +18,77 @@ npm test         # اختبارات calc.js (Vitest)
 ## البنية
 
 ```
+public/assets/sabika-logo.svg   ← لوجو placeholder (استبدله بالرسمي)
 src/
-  data/economic-data.json   ← مصدر الحقيقة الوحيد للأرقام (placeholder دلوقتي)
-  lib/calc.js               ← كل المنطق الحسابي، دوال نقية
-  lib/calc.test.js          ← اختبارات Vitest
-  lib/format.js             ← تنسيق أرقام/نسب بالعربي
-  config.js                 ← إعدادات الـ CTA / install URL
-  goals.js                  ← الأهداف الجاهزة
-  App.jsx                   ← الـ wizard خطوة بخطوة
-  components/               ← PathBar / ShareCard / Disclaimer / PlaceholderWarning
+  data/economic-data.json       ← مصدر الحقيقة الوحيد للأرقام (placeholder دلوقتي)
+  lib/calc.js                   ← المنطق الحسابي + التحقق، دوال نقية
+  lib/calc.test.js              ← اختبارات Vitest (20 اختبار)
+  lib/format.js                 ← تنسيق أرقام/نسب بالعربي
+  config.js                     ← إعدادات الـ CTA / Adjust install URL
+  goals.js                      ← الأهداف الجاهزة
+  App.jsx                       ← الـ wizard خطوة بخطوة
+  components/                   ← PathBar / ShareCard / Disclaimer / PlaceholderWarning
+  styles.css                    ← ثيم سبيكة الفاتح (CSS variables)
 ```
 
-## الافتراضات الحسابية (مهمة — راجعها قبل النشر)
+## نموذج البيانات (economic-data.json)
 
-كلها موثّقة بالتفصيل في رأس `src/lib/calc.js`:
+- **`meta.latest_complete_year`** — آخر سنة مكتملة (مثلاً 2025). السنة الجارية
+  **مش** بتتعامل كسنة كاملة.
+- **`meta.current_period`** — وصف الفترة الحالية (مثلاً `2026-Q2`).
+- **`annual`** — السنوات المكتملة فقط (2018→2025)، كل سنة فيها:
+  `cpi_index`, `gold_gram_egp`, `silver_price_egp`, `certificate_rate`, `cbe_rate_sanity_check`.
+- **`current`** — المرجع الحالي (CPI الحالي + سعر الذهب/الفضة الحالي من سبيكة) المستخدم مع `goalToday`.
 
-1. **`cpi_index`** = رقم قياسي للأسعار؛ بنستخدم النسبة بين السنين، فسنة الأساس
-   مش بتأثر طول ما السلسلة متّسقة. سعر الهدف قديماً = `goalToday × cpi[year] / cpi[latest]`.
-2. **`certificate_rate`** = العائد السنوي **ككسر عشري** (0.18 = 18%). التركيب من
-   `startYear` لحد `latestYear − 1`.
-3. **`gold_gram_egp`** = سعر جرام عيار 24 بالجنيه. الذهب = حفظ قيمة: نحوّل المبلغ
-   جرامات وقتها ونقيّمها بسعر النهارده. **مفيش أي افتراض عائد.**
-4. **الإسقاط المستقبلي** = متوسط التضخم لآخر 3 سنين محسوب من نفس الداتا (مش رقم
-   مخترع). توضيحي بحت: بيمثّل إن الهدف بيتحرّك لقدام والكاش واقف. **مفيش أي رقم
-   عائد ذهب مستقبلي.**
+### مهم جدًا عن أنواع الأرقام
+- **`cpi_index` رقم قياسي (INDEX) مش نسبة تضخم.** لا تدخل `0.18` أو `18` هنا.
+  (مثال صحيح: `135.4`). فيه validation بيرفض أي قيمة `< 10`.
+- **`certificate_rate` و `cbe_rate_sanity_check` كسور عشرية.** `0.18 = 18%`.
+  لا تدخل `18`. فيه validation بيرفض أي قيمة `>= 1`.
+- **`gold_gram_egp` / `silver_price_egp`** أسعار سبيكة المرجعية بالجنيه.
+  **مصدر السعر لازم يكون سبيكة** — مفيش fallback خارجي. لو ناقص، النتائج تتمنع.
+- **الفضة `future-ready`**: موجودة في الـ schema بس **مش مسار في الواجهة v1**،
+  فهي مش مطلوبة للتحقق (ممكن تفضل null).
+
+> **ملاحظة v1:** مفيش scraping تلقائي من Sabika.app. الأسعار تتملا يدويًا أو من
+> export داخلي موثوق داخل `economic-data.json`.
+
+## الافتراضات الحسابية (مفصّلة في رأس `src/lib/calc.js`)
+
+1. سعر الهدف قديماً = `goalToday × annual[year].cpi_index / current.cpi_index`.
+2. الشهادة: تركيب `certificate_rate` من `startYear` لحد `latest_complete_year`
+   **ضمناً**، بافتراض إعادة استثمار سنوي.
+3. الذهب: تحويل المبلغ جرامات بسعر سنته، وتقييمها بسعر سبيكة الحالي. **مفيش افتراض عائد.**
+4. المستقبل: متوسط تضخم آخر 3 سنوات مكتملة من نفس الداتا — **سيناريو توضيحي**، مفيش رقم عائد ذهب/فضة مستقبلي.
+
+## التحقق (validation) — النتائج والكارت بيتمنعوا لو:
+
+`is_placeholder = true` • أي حقل مطلوب `null` • `latest_complete_year` مش موجود •
+`current` data ناقصة • `cpi_index` شكله نسبة تضخم (`< 10`) • `certificate_rate`
+مكتوب `18` بدل `0.18` (`>= 1`) • سعر ذهب سبيكة ناقص للسنة المطلوبة •
+`CTA.installUrl` لسه placeholder.
+
+في أي من دول: warning أحمر "البيانات تجريبية — لا تُنشر" + زرار الكارت `disabled`.
 
 ## القيود المحمية في الكود
 
 - ✅ صفر أرقام اقتصادية hardcoded — كله من `economic-data.json`.
-- ✅ `is_placeholder: true` → تحذير أحمر بارز + منع توليد الكارت.
-- ✅ المقارنة ثلاثية دايماً (كاش/شهادة/ذهب).
-- ✅ مفيش نص يوعد بعائد مستقبلي.
-- ✅ disclaimer دائم تحت النتيجة وتحت الإسقاط.
+- ✅ المقارنة ثلاثية دائمًا (كاش/شهادة/ذهب). الفضة مش مسار رابع في v1.
+- ✅ مفيش نص يوعد بعائد مستقبلي؛ الذهب = حفظ قيمة.
+- ✅ disclaimer دائم تحت النتيجة وتحت الإسقاط + ملاحظات منهجية تحت الذهب والشهادة.
 
-## مسؤوليتك قبل النشر (مش شغل الكود)
+## التصميم
 
-كل مكان محتاج تدخّل عليه علامة `FILL` أو `<<<FILL...>>>`:
+ثيم فاتح مستوحى من تطبيق سبيكة (خلفية بيضا، كروت ناعمة rounded بظل خفيف، ذهبي
+دافئ، زرار CTA ذهبي بنص داكن). الألوان في `:root` داخل `src/styles.css` **تقريبية**
+وعليها `TODO` لاستبدالها بالألوان الرسمية.
 
-1. **املا `src/data/economic-data.json`** بأرقام حقيقية:
-   - `cpi_index` (تضخم/CBE)، `gold_gram_egp` (سعر الجرام)، `certificate_rate` (عائد الشهادات ككسر عشري).
-   - حدّث `meta.sources` و `meta.last_updated`.
-   - حوّل `meta.is_placeholder` لـ **`false`**.
-2. **حط الـ Adjust install URL** الصح في `src/config.js` (`CTA.installUrl`).
-3. **راجع نصوص الكارت** — اتأكد إن مفيش وعد عائد تسرّب.
-4. **اختبر على موبايل حقيقي** (RTL والمشاركة بيختلفوا عن الديسكتوب).
-5. **استبدل palette الألوان المؤقت** في `src/styles.css` (المتغيرات اللي عليها `FILL`).
+## مسؤوليتك قبل النشر (أماكن `FILL` / `TODO`)
+
+1. **`src/data/economic-data.json`**: CPI index + أسعار سبيكة للذهب (والفضة لاحقًا) +
+   عائد شهادات NBE/Banque Misr التمثيلي + CBE sanity check + `current` + `sources` +
+   `last_updated` + `current_period` → وحوّل `is_placeholder` لـ **`false`**.
+2. **`src/config.js`**: الـ Adjust click URL في `CTA.installUrl`.
+3. **`public/assets/sabika-logo.svg`**: استبدله باللوجو الرسمي.
+4. **`src/styles.css`**: استبدل الـ palette التقريبي بالألوان الرسمية.
+5. راجع نصوص الكارت، واختبر على موبايل حقيقي (RTL + المشاركة).

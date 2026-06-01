@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { formatPct, formatEGP } from '../lib/format.js';
 
+const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.svg`;
+
 /**
- * الكارت القابل للمشاركة.
- * - بيعرض معاينة HTML للنتيجة الشخصية ("اللي معاك لسه معاك؟").
- * - زرار "شارك الكارت" بيرسم الكارت على canvas (نسخة ستوري 9:16 أو مربعة)
- *   ويحوّله PNG ويشاركه عبر Web Share API، أو ينزّله لو المشاركة مش متاحة.
- * - ممنوع توليد الكارت طول ما البيانات تجريبية (بيتحكم فيه الـ parent عبر disabled).
+ * الكارت القابل للمشاركة — هوية سبيكة نظيفة (gold/white).
+ * - معاينة HTML للنتيجة الشخصية ("اللي معاك لسه معاك؟") + المسارات الثلاثة.
+ * - زرار "شارك الكارت" بيرسم الكارت على canvas (ستوري 9:16 أو مربع) ويحوّله PNG
+ *   ويشاركه عبر Web Share API، أو ينزّله لو المشاركة مش متاحة.
+ * - ممنوع توليد الكارت طول ما الداتا تجريبية/ناقصة (الـ parent بيمرّر disabled).
  */
 export default function ShareCard({ journey, goalLabel, disabled }) {
   const [ratio, setRatio] = useState('story'); // 'story' (9:16) أو 'square' (1:1)
@@ -29,7 +31,6 @@ export default function ShareCard({ journey, goalLabel, disabled }) {
           text: 'شوف رحلة فلوسك مع هدف واحد 👇',
         });
       } else {
-        // fallback: تنزيل الصورة
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -38,7 +39,6 @@ export default function ShareCard({ journey, goalLabel, disabled }) {
         URL.revokeObjectURL(url);
       }
     } catch (err) {
-      // المستخدم ممكن يلغي المشاركة — مش خطأ حقيقي
       if (err && err.name !== 'AbortError') {
         console.error('share failed', err);
       }
@@ -50,20 +50,21 @@ export default function ShareCard({ journey, goalLabel, disabled }) {
   return (
     <div>
       <div className="share-card" id="share-card-preview">
-        <div className="share-card__brand">سبيكة</div>
+        <img className="share-card__logo" src={LOGO_URL} alt="سبيكة" />
         <div className="share-card__q">اللي معاك لسه معاك؟</div>
         <div className="share-card__rows">
           <ShareRow name="💵 كاش خامل" share={cash.share} />
           <ShareRow name="🏦 شهادة بنكية" share={certificate.share} />
-          <ShareRow name="🪙 ذهب" share={gold.share} highlight />
+          <ShareRow name="🪙 ذهب" share={gold.share} gold />
         </div>
         <div className="share-card__foot">
-          من سنة {journey.startYear} → هدفك: {goalLabel} (
-          {formatEGP(journey.goalToday)})
+          من سنة {journey.startYear} • هدفك: {goalLabel} ({formatEGP(journey.goalToday)})
+          <br />
+          للأغراض التوضيحية فقط — الأداء الماضي لا يضمن المستقبل.
         </div>
       </div>
 
-      <div className="ratio-toggle">
+      <div className="ratio-toggle" role="tablist">
         <button
           className={ratio === 'story' ? 'is-active' : ''}
           onClick={() => setRatio('story')}
@@ -85,28 +86,26 @@ export default function ShareCard({ journey, goalLabel, disabled }) {
   );
 }
 
-function ShareRow({ name, share, highlight }) {
+function ShareRow({ name, share, gold }) {
   return (
-    <div className="share-row" style={highlight ? { background: 'rgba(212,175,55,0.14)' } : null}>
+    <div className={`share-row ${gold ? 'share-row--gold' : ''}`}>
       <span className="share-row__name">{name}</span>
-      <span className="share-row__val" style={highlight ? { color: 'var(--gold)' } : null}>
-        {formatPct(share)}
-      </span>
+      <span className="share-row__val">{formatPct(share)}</span>
     </div>
   );
 }
 
 /* ----------------------- توليد PNG عبر canvas ----------------------- */
 
-const COLORS = {
-  bg1: '#1a1612',
-  bg2: '#0f0d0a',
-  gold: '#d4af37',
-  goldSoft: '#e8c95f',
-  text: '#f5efe3',
-  dim: '#b8ad97',
-  rowBg: 'rgba(255,255,255,0.04)',
-  goldRowBg: 'rgba(212,175,55,0.14)',
+const C = {
+  bg1: '#ffffff',
+  bg2: '#fffaf0',
+  gold: '#ebc100',
+  goldSoft: '#fff6d8',
+  border: '#f0e3a8',
+  text: '#3a3a3a',
+  muted: '#8a8a8a',
+  rowBg: '#f7f7f7',
 };
 
 /**
@@ -114,19 +113,17 @@ const COLORS = {
  * تطلع بالخط الصح مش fallback (مهم على الموبايل لأن الخط بيتحمّل async).
  */
 async function ensureFontsLoaded() {
-  if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) {
-    return;
-  }
+  if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) return;
   try {
     await Promise.all([
-      document.fonts.load('900 64px Cairo'),
-      document.fonts.load('800 72px Cairo'),
-      document.fonts.load('700 48px Cairo'),
-      document.fonts.load('400 28px Cairo'),
+      document.fonts.load('900 60px Cairo'),
+      document.fonts.load('800 64px Cairo'),
+      document.fonts.load('700 44px Cairo'),
+      document.fonts.load('400 26px Cairo'),
     ]);
     await document.fonts.ready;
   } catch {
-    // لو فشل التحميل، بنكمّل بالخط الافتراضي بدل ما نوقف المشاركة
+    // نكمّل بالخط الافتراضي بدل ما نوقف المشاركة
   }
 }
 
@@ -141,77 +138,76 @@ function renderCardPNG({ journey, goalLabel, ratio }) {
     ctx.direction = 'rtl';
     ctx.textAlign = 'center';
 
-    // خلفية متدرجة
-    const grad = ctx.createLinearGradient(0, 0, dims.w, dims.h);
-    grad.addColorStop(0, COLORS.bg1);
-    grad.addColorStop(1, COLORS.bg2);
+    // خلفية فاتحة
+    const grad = ctx.createLinearGradient(0, 0, 0, dims.h);
+    grad.addColorStop(0, C.bg1);
+    grad.addColorStop(1, C.bg2);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, dims.w, dims.h);
 
     // إطار ذهبي خفيف
-    ctx.strokeStyle = 'rgba(212,175,55,0.35)';
+    ctx.strokeStyle = C.border;
     ctx.lineWidth = 4;
-    ctx.strokeRect(24, 24, dims.w - 48, dims.h - 48);
+    roundRect(ctx, 30, 30, dims.w - 60, dims.h - 60, 36);
+    ctx.stroke();
 
     const cx = dims.w / 2;
-    let y = ratio === 'square' ? 150 : 320;
+    let y = ratio === 'square' ? 150 : 340;
     const font = (size, weight = '700') => `${weight} ${size}px Cairo, sans-serif`;
 
-    // البراند
-    ctx.fillStyle = COLORS.gold;
-    ctx.font = font(64, '900');
+    // البراند (wordmark نصي — اللوجو الكامل في المعاينة HTML)
+    ctx.fillStyle = C.gold;
+    ctx.font = font(72, '900');
     ctx.fillText('سبيكة', cx, y);
     y += 120;
 
     // السؤال
-    ctx.fillStyle = COLORS.text;
-    ctx.font = font(72, '800');
+    ctx.fillStyle = C.text;
+    ctx.font = font(64, '800');
     ctx.fillText('اللي معاك لسه معاك؟', cx, y);
-    y += 140;
+    y += 130;
 
     // الصفوف الثلاثة
     const rows = [
-      { name: '💵 كاش خامل', share: journey.paths.cash.share, hl: false },
-      { name: '🏦 شهادة بنكية', share: journey.paths.certificate.share, hl: false },
-      { name: '🪙 ذهب', share: journey.paths.gold.share, hl: true },
+      { name: '💵 كاش خامل', share: journey.paths.cash.share, gold: false },
+      { name: '🏦 شهادة بنكية', share: journey.paths.certificate.share, gold: false },
+      { name: '🪙 ذهب', share: journey.paths.gold.share, gold: true },
     ];
     const rowW = dims.w - 200;
     const rowH = 150;
     const rowX = 100;
     rows.forEach((r) => {
-      ctx.fillStyle = r.hl ? COLORS.goldRowBg : COLORS.rowBg;
-      roundRect(ctx, rowX, y, rowW, rowH, 24);
+      ctx.fillStyle = r.gold ? C.goldSoft : C.rowBg;
+      roundRect(ctx, rowX, y, rowW, rowH, 26);
       ctx.fill();
 
       ctx.textAlign = 'right';
-      ctx.fillStyle = COLORS.text;
-      ctx.font = font(48, '700');
-      ctx.fillText(r.name, rowX + rowW - 40, y + rowH / 2 + 18);
+      ctx.fillStyle = C.text;
+      ctx.font = font(46, '700');
+      ctx.fillText(r.name, rowX + rowW - 44, y + rowH / 2 + 16);
 
       ctx.textAlign = 'left';
-      ctx.fillStyle = r.hl ? COLORS.gold : COLORS.text;
-      ctx.font = font(60, '900');
-      ctx.fillText(formatPct(r.share), rowX + 40, y + rowH / 2 + 20);
+      ctx.fillStyle = r.gold ? C.gold : C.text;
+      ctx.font = font(58, '900');
+      ctx.fillText(formatPct(r.share), rowX + 44, y + rowH / 2 + 18);
       ctx.textAlign = 'center';
 
-      y += rowH + 30;
+      y += rowH + 28;
     });
 
-    y += 30;
-    ctx.fillStyle = COLORS.dim;
+    y += 34;
+    ctx.fillStyle = C.muted;
     ctx.font = font(36, '600');
-    ctx.fillText(
-      `من سنة ${journey.startYear} • هدفك: ${goalLabel}`,
-      cx,
-      y
-    );
-    y += 56;
+    ctx.fillText(`من سنة ${journey.startYear} • هدفك: ${goalLabel}`, cx, y);
+    y += 54;
+    ctx.fillStyle = C.text;
+    ctx.font = font(44, '800');
     ctx.fillText(formatEGP(journey.goalToday), cx, y);
 
     // disclaimer أسفل الكارت
-    ctx.fillStyle = COLORS.dim;
-    ctx.font = font(28, '400');
-    ctx.fillText('للأغراض التوضيحية فقط — الأداء الماضي لا يضمن المستقبل', cx, dims.h - 70);
+    ctx.fillStyle = C.muted;
+    ctx.font = font(26, '400');
+    ctx.fillText('للأغراض التوضيحية فقط — الأداء الماضي لا يضمن المستقبل', cx, dims.h - 80);
 
     canvas.toBlob((blob) => resolve(blob), 'image/png');
   });

@@ -1,23 +1,40 @@
 {
   "meta": {
     "last_updated": "<<<FILL: تاريخ آخر تحديث للبيانات>>>",
-    "base_year": 2018,
+    "latest_complete_year": 2025,
+    "current_period": "<<<FILL: الفترة الحالية، مثلاً 2026-Q2 أو يونيو 2026>>>",
+    "is_placeholder": true,
+    "schema_notes": "cpi_index is an INDEX value (e.g. 100, 250.3), NOT an annual inflation percentage. Do not enter 0.18 or 18 here. certificate_rate and cbe_rate_sanity_check are DECIMAL fractions: 0.18 = 18%. Do not enter 18. Gold/silver prices are Sabika reference prices in EGP. Silver is future-ready in the schema but is NOT a UI path in v1.",
     "sources": {
-      "inflation": "<<<FILL: مصدر التضخم / الرقم القياسي للأسعار، مثلاً البنك المركزي المصري CBE>>>",
-      "gold_price_egp": "<<<FILL: مصدر متوسط سعر جرام الذهب عيار 24 بالجنيه>>>",
-      "bank_certificate": "<<<FILL: مصدر متوسط العائد السنوي للشهادات البنكية>>>"
+      "inflation": "<<<FILL: مصدر التضخم / الرقم القياسي للأسعار CPI، مثلاً البنك المركزي المصري CBE>>>",
+      "gold_price_egp": "Sabika.app / internal Sabika historical reference prices",
+      "silver_price_egp": "Sabika.app / internal Sabika historical reference prices",
+      "bank_certificate": "<<<FILL: NBE/Banque Misr public certificate announcements / archived product pages>>>",
+      "cbe_rate_sanity_check": "<<<FILL: CBE historical interest-rate data>>>"
     },
-    "is_placeholder": true
+    "methodology": {
+      "inflation": "Annual average CPI index from official CPI data. Current CPI = latest published monthly CPI.",
+      "gold_price": "Annual average Sabika reference 24k gram price in EGP from Sabika.app/internal Sabika historical pricing data. Current gold = current Sabika reference 24k gram price from Sabika.app.",
+      "silver_price": "Annual average Sabika reference silver price in EGP from Sabika.app/internal Sabika historical pricing data. Current silver = current Sabika reference silver price from Sabika.app.",
+      "bank_certificate": "Representative EGP certificate path based on the most relevant/flagship NBE and Banque Misr public certificates available during each year, annualized, assuming yearly reinvestment.",
+      "cbe_rate_sanity_check": "CBE interest-rate data used internally as a sanity check only, not as the customer-facing certificate path."
+    }
   },
-  "yearly": {
-    "2018": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2019": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2020": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2021": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2022": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2023": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2024": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2025": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null },
-    "2026": { "cpi_index": null, "gold_gram_egp": null, "certificate_rate": null }
+  "annual": {
+    "2018": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2019": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2020": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2021": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2022": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2023": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2024": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null },
+    "2025": { "cpi_index": null, "gold_gram_egp": null, "silver_price_egp": null, "certificate_rate": null, "cbe_rate_sanity_check": null }
+  },
+  "current": {
+    "cpi_index": null,
+    "gold_gram_egp": null,
+    "silver_price_egp": null,
+    "certificate_rate": null,
+    "cbe_rate_sanity_check": null
   }
 }

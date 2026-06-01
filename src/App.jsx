@@ -5,34 +5,42 @@ import { GOALS, getGoal } from './goals.js';
 import {
   getDataStatus,
   getYears,
-  getLatestYear,
+  getLatestCompleteYear,
   computeJourney,
   projectFuture,
 } from './lib/calc.js';
 import { formatEGP, formatPct } from './lib/format.js';
 import PlaceholderWarning from './components/PlaceholderWarning.jsx';
-import Disclaimer from './components/Disclaimer.jsx';
+import Disclaimer, { GoldPriceNote, CertificateNote } from './components/Disclaimer.jsx';
 import PathBar from './components/PathBar.jsx';
 import ShareCard from './components/ShareCard.jsx';
 
+const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.svg`;
 const STEPS = ['goal', 'price', 'year', 'past', 'future', 'card', 'cta'];
 
 export default function App() {
   const dataStatus = useMemo(() => getDataStatus(data), []);
   const usable = dataStatus.usable;
+  // اختيار السنوات بيتولّد من annual المتاحة — مش hardcoded.
   const years = useMemo(() => getYears(data), []);
-  const latestYear = useMemo(() => getLatestYear(data), []);
+  const latestCompleteYear = useMemo(() => {
+    try {
+      return getLatestCompleteYear(data);
+    } catch {
+      return null;
+    }
+  }, []);
 
   const [stepIdx, setStepIdx] = useState(0);
   const [goalId, setGoalId] = useState(null);
   const [price, setPrice] = useState('');
-  const [startYear, setStartYear] = useState(years[0]);
+  const [startYear, setStartYear] = useState(years[0] ?? null);
 
   const step = STEPS[stepIdx];
   const goal = getGoal(goalId);
   const goalToday = Number(price) || 0;
 
-  // بنحسب الرحلة بس لو الداتا صالحة والمدخلات تمام (عشان calc بيرمي على null).
+  // الرحلة بتتحسب بس لو الداتا صالحة والمدخلات تمام (calc بيرمي على null).
   const journey = useMemo(() => {
     if (!usable || !goalToday || !startYear) return null;
     try {
@@ -51,8 +59,7 @@ export default function App() {
     }
   }, [usable, goalToday]);
 
-  const goalLabel =
-    goal && goal.id !== 'custom' ? goal.label : 'هدفك';
+  const goalLabel = goal && goal.id !== 'custom' ? goal.label : 'هدفك';
 
   const next = () => setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
   const back = () => setStepIdx((i) => Math.max(i - 1, 0));
@@ -67,7 +74,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="brand">
-        <span className="brand__logo">سبيكة</span>
+        <img className="brand__logo-img" src={LOGO_URL} alt="سبيكة" />
         <span className="brand__tag">رحلة فلوسك مع هدف واحد</span>
       </header>
 
@@ -83,16 +90,17 @@ export default function App() {
       </div>
 
       {step === 'goal' && (
-        <GoalStep goalId={goalId} onPick={(id) => {
-          setGoalId(id);
-          const g = getGoal(id);
-          if (g && g.defaultPrice) setPrice(String(g.defaultPrice));
-        }} />
+        <GoalStep
+          goalId={goalId}
+          onPick={(id) => {
+            setGoalId(id);
+            const g = getGoal(id);
+            if (g && g.defaultPrice) setPrice(String(g.defaultPrice));
+          }}
+        />
       )}
 
-      {step === 'price' && (
-        <PriceStep goal={goal} price={price} setPrice={setPrice} />
-      )}
+      {step === 'price' && <PriceStep goal={goal} price={price} setPrice={setPrice} />}
 
       {step === 'year' && (
         <YearStep years={years} startYear={startYear} setStartYear={setStartYear} />
@@ -109,12 +117,7 @@ export default function App() {
       )}
 
       {step === 'future' && (
-        <FutureStep
-          usable={usable}
-          reason={dataStatus.reason}
-          future={future}
-          latestYear={latestYear}
-        />
+        <FutureStep usable={usable} reason={dataStatus.reason} future={future} />
       )}
 
       {step === 'card' && (
@@ -128,7 +131,6 @@ export default function App() {
 
       {step === 'cta' && <CtaStep />}
 
-      {/* أزرار التنقل (مخفية في خطوة الـ CTA النهائية) */}
       {step !== 'cta' && (
         <div className="actions">
           {stepIdx > 0 && (
@@ -151,7 +153,9 @@ function GoalStep({ goalId, onPick }) {
   return (
     <div className="step">
       <h1 className="step__title">هدفك إيه؟</h1>
-      <p className="step__sub">اختار حاجة واحدة بتجمّع عشانها — وخلّينا نشوف رحلة فلوسك ناحيتها.</p>
+      <p className="step__sub">
+        اختار حاجة واحدة بتجمّع عشانها — وخلّينا نشوف رحلة فلوسك ناحيتها بهدوء.
+      </p>
       <div className="goal-grid">
         {GOALS.map((g) => (
           <button
@@ -159,7 +163,9 @@ function GoalStep({ goalId, onPick }) {
             className={`goal-btn ${goalId === g.id ? 'is-selected' : ''}`}
             onClick={() => onPick(g.id)}
           >
-            <span className="goal-btn__emoji" aria-hidden>{g.emoji}</span>
+            <span className="goal-btn__emoji" aria-hidden>
+              {g.emoji}
+            </span>
             {g.label}
           </button>
         ))}
@@ -176,7 +182,9 @@ function PriceStep({ goal, price, setPrice }) {
         قرّب بقدر ما تقدر — {goal && goal.id !== 'custom' ? `سعر ${goal.label}` : 'سعر هدفك'} النهارده بالجنيه.
       </p>
       <div className="field">
-        <label className="field__label" htmlFor="price">السعر بالجنيه المصري</label>
+        <label className="field__label" htmlFor="price">
+          السعر بالجنيه المصري
+        </label>
         <input
           id="price"
           className="input"
@@ -195,9 +203,11 @@ function YearStep({ years, startYear, setStartYear }) {
   return (
     <div className="step">
       <h1 className="step__title">نرجع بالزمن لسنة كام؟</h1>
-      <p className="step__sub">تخيّل إنك جمّعت المبلغ ده من السنة دي — هنشوف بقى لحد النهارده.</p>
+      <p className="step__sub">
+        تخيّل إنك جمّعت المبلغ ده من السنة دي — هنشوف بقى لحد النهارده.
+      </p>
       <div className="years">
-        {years.slice(0, -1).map((y) => (
+        {years.map((y) => (
           <button
             key={y}
             className={`year-btn ${startYear === y ? 'is-selected' : ''}`}
@@ -216,7 +226,7 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
     <div className="step">
       <h1 className="step__title">من سنة {startYear} لحد النهارده</h1>
       <p className="step__sub">
-        المبلغ اللي كان يشتري {goalLabel} كامل سنة {startYear} — يشتري قدّ إيه منه النهارده في كل مسار؟
+        المبلغ اللي كان يكفّي {goalLabel} كامل سنة {startYear} — يغطّي قدّ إيه منه النهارده في كل مسار؟
       </p>
 
       {!usable && <PlaceholderWarning reason={reason} />}
@@ -224,12 +234,14 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
       {usable && journey && (
         <>
           <div className="paths">
-            <PathBar result={journey.paths.cash} />
+            <PathBar result={journey.paths.cash} note="الكاش فضل واقف مكانه." />
             <PathBar result={journey.paths.certificate} />
             <PathBar result={journey.paths.gold} />
           </div>
-          <p className="step__sub" style={{ marginTop: 18, marginBottom: 0 }}>
-            الكاش وقف مكانه، الهدف اتحرّك لقدام. الذهب لاحق الهدف كأداة حفظ قيمة.
+          <CertificateNote />
+          <GoldPriceNote />
+          <p className="step__sub" style={{ marginTop: 16, marginBottom: 0 }}>
+            الهدف اتحرّك لقدام، والكاش الواقف بقى يغطّي أقل. الذهب أداة حفظ قيمة تاريخيًا قدام التضخم.
           </p>
           <Disclaimer />
         </>
@@ -238,7 +250,7 @@ function PastStep({ usable, reason, journey, startYear, goalLabel }) {
   );
 }
 
-function FutureStep({ usable, reason, future, latestYear }) {
+function FutureStep({ usable, reason, future }) {
   return (
     <div className="step">
       <h1 className="step__title">وبكرة؟ الهدف بيكمّل مشوار</h1>
@@ -251,28 +263,26 @@ function FutureStep({ usable, reason, future, latestYear }) {
       {usable && future && (
         <>
           <div className="future-chart">
-            {future.points
-              .filter((p) => p.yearOffset % 1 === 0)
-              .map((p) => (
-                <div className="future-row" key={p.yearOffset}>
-                  <span className="future-row__label">
-                    {p.yearOffset === 0 ? 'النهارده' : `+${p.yearOffset} سنة`}
-                  </span>
-                  <div className="future-row__track">
-                    <span className="future-row__goal" />
-                    <span
-                      className="future-row__cash"
-                      style={{ width: `${Math.max(p.cashCovers, 0) * 100}%` }}
-                    />
-                  </div>
-                  <span className="future-row__label" style={{ width: 'auto' }}>
-                    {formatPct(p.cashCovers)}
-                  </span>
+            {future.points.map((p) => (
+              <div className="future-row" key={p.yearOffset}>
+                <span className="future-row__label">
+                  {p.yearOffset === 0 ? 'النهارده' : `+${p.yearOffset} سنة`}
+                </span>
+                <div className="future-row__track">
+                  <span
+                    className="future-row__cash"
+                    style={{ width: `${Math.max(p.cashCovers, 0) * 100}%` }}
+                  />
                 </div>
-              ))}
+                <span className="future-row__label" style={{ width: 'auto' }}>
+                  {formatPct(p.cashCovers)}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="step__sub" style={{ marginTop: 16, marginBottom: 0 }}>
-            الإطار الذهبي = الهدف الماشي. الجزء الرمادي = اللي الكاش الواقف لسه بيغطّيه منه.
+          <p className="method-note">
+            سيناريو توضيحي مبني على متوسط آخر 3 سنوات من البيانات، وليس توقعًا أو ضمانًا. الجزء
+            الذهبي = الهدف الماشي، والجزء الرمادي = اللي الكاش الواقف لسه بيغطّيه منه.
           </p>
           <Disclaimer />
         </>
@@ -300,7 +310,7 @@ function CardStep({ usable, reason, journey, goalLabel }) {
           <h1 className="step__title">الكارت لسه مش جاهز</h1>
           <PlaceholderWarning reason={reason} />
           <p className="step__sub">
-            مينفعش نطلّع كارت للمشاركة بأرقام تجريبية. املا البيانات الحقيقية الأول.
+            مينفعش نطلّع كارت للمشاركة بأرقام تجريبية أو ناقصة. لازم البيانات الحقيقية تتملا الأول.
           </p>
         </>
       )}
@@ -314,13 +324,13 @@ function CtaStep() {
     if (ready) window.open(CTA.installUrl, '_blank', 'noopener');
   };
   return (
-    <div className="step" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>🪙</div>
-      <h1 className="step__title">خلّي فلوسك تلاحق هدفك</h1>
+    <div className="step cta-screen">
+      <img className="cta-screen__logo" src={LOGO_URL} alt="سبيكة" />
+      <h1 className="step__title">خلّي جزء من مدخراتك ذهب</h1>
       <p className="step__sub">
-        ابدأ تحوّل جزء من مدخراتك ذهب جوّه سبيكة — أداة حفظ قيمة قدام التضخم.
+        ابدأ مع سبيكة — أداة بسيطة لحفظ القيمة قدام التضخم، خطوة بخطوة.
       </p>
-      <div style={{ marginTop: 'auto', width: '100%', paddingTop: 24 }}>
+      <div style={{ marginTop: 'auto', width: '100%', paddingTop: 22 }}>
         {!ready && (
           <div className="placeholder-warning">
             <strong>⚠️ رابط التثبيت مش متظبط</strong>

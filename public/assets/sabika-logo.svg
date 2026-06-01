@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TODO: استبدل ده باللوجو الرسمي لسبيكة (SVG/PNG عالي الدقة).
+  ده تقريب مؤقت (placeholder) لشكل المفتاح الذهبي + كلمة SABIKA، مبني على
+  الـ screenshots كمرجع بصري فقط. مش اللوجو الرسمي.
+-->
+<svg width="220" height="86" viewBox="0 0 400 156" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="سبيكة">
+  <g fill="#E3C13C">
+    <!-- ring (حلقة المفتاح) -->
+    <circle cx="64" cy="86" r="30" fill="none" stroke="#E3C13C" stroke-width="16"/>
+    <!-- shaft (جسم المفتاح) -->
+    <rect x="92" y="40" width="270" height="16" rx="8"/>
+    <rect x="92" y="78" width="210" height="16" rx="8"/>
+    <!-- teeth (أسنان المفتاح) -->
+    <rect x="318" y="40" width="16" height="40" rx="6"/>
+    <rect x="284" y="78" width="14" height="30" rx="6"/>
+    <rect x="252" y="78" width="14" height="30" rx="6"/>
+    <rect x="220" y="78" width="14" height="30" rx="6"/>
+    <!-- diamonds (نقط) -->
+    <rect x="150" y="20" width="16" height="16" rx="3" transform="rotate(45 158 28)"/>
+    <rect x="186" y="20" width="16" height="16" rx="3" transform="rotate(45 194 28)"/>
+    <rect x="150" y="116" width="14" height="14" rx="3" transform="rotate(45 157 123)"/>
+    <rect x="182" y="116" width="14" height="14" rx="3" transform="rotate(45 189 123)"/>
+    <rect x="214" y="116" width="14" height="14" rx="3" transform="rotate(45 221 123)"/>
+  </g>
+  <text x="200" y="150" text-anchor="middle" font-family="Cairo, sans-serif" font-weight="700"
+        font-size="26" letter-spacing="8" fill="#2B2B2B">SABIKA</text>
+</svg>

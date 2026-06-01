@@ -5,91 +5,174 @@
  * مفيش أي رقم hardcoded هنا. كل الأرقام بتيجي من كائن `data` اللي مصدره
  * src/data/economic-data.json.
  *
+ * ============================ نموذج البيانات ============================
+ * - data.annual: السنوات المكتملة فقط (مثلاً 2018→2025).
+ * - data.current: المرجع الحالي (CPI الحالي + سعر الذهب/الفضة الحالي من سبيكة).
+ *   السنة الجارية مش بتتعامل كسنة مكتملة — بنستخدم data.current كـ "النهارده".
+ * - meta.latest_complete_year: آخر سنة مكتملة (نهاية تركيب الشهادة).
+ *
  * ============================ افتراضات حسابية ============================
- * (دي الافتراضات اللي اتبنى عليها الكود — موثّقة عشان تتراجع قبل النشر)
+ * 1) cpi_index = الرقم القياسي للأسعار (INDEX، مش نسبة تضخم). بنستخدم النسبة
+ *    بين السنة و current، فسنة الأساس مش بتأثر طول ما السلسلة متّسقة.
+ *    سعر الهدف في سنة قديمة = goalToday * cpi[year] / cpi[current].
  *
- * 1) cpi_index = الرقم القياسي للأسعار (price index). بنستخدم النسبة بين
- *    سنتين، فاختيار سنة الأساس مش بيأثر على النتيجة طول ما السلسلة متّسقة.
- *    سعر الهدف في سنة قديمة = goalToday * cpi[year] / cpi[latestYear].
+ * 2) certificate_rate = العائد السنوي ككسر عشري (0.18 = 18%). التركيب: لكل
+ *    سنة مكتملة y من startYear لحد latest_complete_year (ضمناً) بنضرب في
+ *    (1 + certificate_rate[y])، بافتراض إعادة استثمار العائد سنوياً.
  *
- * 2) certificate_rate = العائد السنوي للشهادة ككسر عشري (0.18 يعني 18%).
- *    التركيب: لكل سنة y من startYear لحد (latestYear - 1) بنضرب في
- *    (1 + certificate_rate[y]) — أي العائد المكتسب خلال كل سنة لحد النهارده.
+ * 3) gold_gram_egp = سعر جرام الذهب عيار 24 المرجعي من سبيكة بالجنيه.
+ *    الذهب أداة حفظ قيمة: بنحوّل المبلغ القديم جرامات بسعر سنته، وبنقيّم
+ *    الجرامات بسعر سبيكة الحالي. مفيش أي افتراض عائد — قيمة فعلية بس.
  *
- * 3) gold_gram_egp = متوسط سعر جرام الذهب عيار 24 بالجنيه في السنة دي.
- *    الذهب أداة حفظ قيمة: بنحوّل المبلغ القديم جرامات وقتها، وبنقيّم
- *    الجرامات دي بسعر النهارده. مفيش أي افتراض عائد — قيمة فعلية بس.
- *
- * 4) الإسقاط المستقبلي = متوسط التضخم للسنوات الأخيرة المحسوب من نفس الداتا
- *    (مش رقم مخترع). توضيحي بحت: بيمثّل إن سعر الهدف بيتحرّك لقدام بينما
- *    الكاش واقف. مفيش أي رقم عائد ذهب مستقبلي إطلاقاً.
+ * 4) الإسقاط المستقبلي = متوسط التضخم لآخر 3 سنوات مكتملة محسوب من نفس الداتا.
+ *    سيناريو توضيحي بحت — مفيش أي رقم عائد ذهب/فضة مستقبلي إطلاقاً.
  * =========================================================================
  */
 
-/** بيرجّع سنين الداتا مرتبة تصاعدياً كأرقام. */
+// حدود التحقق (sanity thresholds)
+const MIN_CPI_INDEX = 10; // أقل من كده غالباً اتدخل كنسبة تضخم بالغلط
+const MAX_DECIMAL_RATE = 1; // 1 أو أكتر = اتكتب 18 بدل 0.18
+
+// الحقول المطلوبة فعلياً للحسابات في v1 (الفضة future-ready، مش مطلوبة).
+const REQUIRED_ANNUAL_FIELDS = ['cpi_index', 'gold_gram_egp', 'certificate_rate'];
+const REQUIRED_CURRENT_FIELDS = ['cpi_index', 'gold_gram_egp'];
+
+/** بيرجّع سنين الـ annual مرتبة تصاعدياً كأرقام. */
 export function getYears(data) {
-  return Object.keys(data.yearly)
+  return Object.keys(data?.annual ?? {})
     .map(Number)
     .filter((y) => !Number.isNaN(y))
     .sort((a, b) => a - b);
 }
 
-/** أحدث سنة في الداتا (السنة "النهارده" بالنسبة للحسابات). */
-export function getLatestYear(data) {
+/** آخر سنة مكتملة (من meta، مع fallback لأكبر سنة في annual). */
+export function getLatestCompleteYear(data) {
+  if (data?.meta?.latest_complete_year != null) {
+    return Number(data.meta.latest_complete_year);
+  }
   const years = getYears(data);
-  if (years.length === 0) throw new Error('economic-data: مفيش سنين في الداتا');
+  if (years.length === 0) throw new Error('economic-data: مفيش سنين مكتملة');
   return years[years.length - 1];
 }
 
-/** أقدم سنة متاحة في الداتا. */
+/** أقدم سنة متاحة. */
 export function getEarliestYear(data) {
   const years = getYears(data);
   if (years.length === 0) throw new Error('economic-data: مفيش سنين في الداتا');
   return years[0];
 }
 
-/**
- * بيتأكد إن الداتا صالحة للحساب.
- * بيرجّع { usable, reason } — usable=false لو placeholder أو فيه قيم ناقصة.
- */
-export function getDataStatus(data) {
-  if (!data || !data.meta || !data.yearly) {
-    return { usable: false, reason: 'الداتا غير موجودة أو غير مكتملة' };
-  }
-  if (data.meta.is_placeholder === true) {
-    return { usable: false, reason: 'البيانات تجريبية (is_placeholder = true)' };
-  }
-  const years = getYears(data);
-  for (const y of years) {
-    const row = data.yearly[y];
-    if (
-      row.cpi_index == null ||
-      row.gold_gram_egp == null ||
-      row.certificate_rate == null
-    ) {
-      return { usable: false, reason: `بيانات ناقصة في سنة ${y}` };
-    }
-  }
-  return { usable: true, reason: null };
+/** المرجع الحالي ("النهارده"). */
+export function getCurrent(data) {
+  if (!data?.current) throw new Error('economic-data: مفيش current reference');
+  return data.current;
 }
 
-/** اختصار: هل ممكن نعرض نتائج نهائية؟ */
+/* ------------------------------ التحقق ------------------------------ */
+
+/**
+ * بيتأكد إن الداتا صالحة للحساب والعرض.
+ * بيرجّع { usable, reason, code }. usable=false يعني نعرض warning ونمنع الكارت.
+ */
+export function getDataStatus(data) {
+  if (!data || !data.meta || !data.annual || !data.current) {
+    return { usable: false, code: 'STRUCTURE', reason: 'الداتا غير موجودة أو غير مكتملة' };
+  }
+  if (data.meta.is_placeholder === true) {
+    return { usable: false, code: 'PLACEHOLDER', reason: 'البيانات تجريبية (is_placeholder = true)' };
+  }
+  if (data.meta.latest_complete_year == null) {
+    return { usable: false, code: 'NO_LATEST_YEAR', reason: 'latest_complete_year غير موجود' };
+  }
+
+  const years = getYears(data);
+  if (years.length === 0) {
+    return { usable: false, code: 'NO_YEARS', reason: 'مفيش سنوات في annual' };
+  }
+
+  // كل سنة مكتملة: الحقول المطلوبة موجودة وصالحة
+  for (const y of years) {
+    const row = data.annual[y];
+    for (const f of REQUIRED_ANNUAL_FIELDS) {
+      if (row?.[f] == null) {
+        return { usable: false, code: 'NULL_DATA', reason: `بيانات ناقصة: annual.${y}.${f}` };
+      }
+    }
+    const cpiCheck = checkCpiIndex(row.cpi_index, `annual.${y}.cpi_index`);
+    if (cpiCheck) return cpiCheck;
+    const rateCheck = checkRate(row.certificate_rate, `annual.${y}.certificate_rate`);
+    if (rateCheck) return rateCheck;
+  }
+
+  // المرجع الحالي
+  for (const f of REQUIRED_CURRENT_FIELDS) {
+    if (data.current?.[f] == null) {
+      return { usable: false, code: 'CURRENT_MISSING', reason: `بيانات current ناقصة: current.${f}` };
+    }
+  }
+  const curCpiCheck = checkCpiIndex(data.current.cpi_index, 'current.cpi_index');
+  if (curCpiCheck) return curCpiCheck;
+
+  return { usable: true, code: 'OK', reason: null };
+}
+
+/** اختصار: هل ممكن نعرض نتائج نهائية ونولّد الكارت؟ */
 export function isDataUsable(data) {
   return getDataStatus(data).usable;
 }
 
+/** بيتأكد إن قيمة معيّنة من annual متاحة للسنة المطلوبة (قبل الحساب). */
+export function hasYearData(data, year) {
+  const row = data?.annual?.[year];
+  if (!row) return false;
+  return REQUIRED_ANNUAL_FIELDS.every((f) => row[f] != null);
+}
+
+function checkCpiIndex(value, label) {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return { usable: false, code: 'BAD_CPI', reason: `قيمة غير صالحة: ${label}` };
+  }
+  // index لازم يكون رقم كبير نسبياً؛ < 10 غالباً اتدخل كنسبة تضخم (0.18 / 18)
+  if (n < MIN_CPI_INDEX) {
+    return {
+      usable: false,
+      code: 'CPI_LOOKS_LIKE_RATE',
+      reason: `${label} شكله نسبة تضخم مش رقم قياسي (index). لازم يكون ≥ ${MIN_CPI_INDEX}.`,
+    };
+  }
+  return null;
+}
+
+function checkRate(value, label) {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return { usable: false, code: 'BAD_RATE', reason: `قيمة غير صالحة: ${label}` };
+  }
+  // كسر عشري؛ 1 أو أكتر يعني اتكتب 18 بدل 0.18
+  if (n >= MAX_DECIMAL_RATE) {
+    return {
+      usable: false,
+      code: 'RATE_LOOKS_LIKE_PERCENT',
+      reason: `${label} لازم يكون كسر عشري (0.18 = 18%)، مش ${n}.`,
+    };
+  }
+  if (n < 0) {
+    return { usable: false, code: 'BAD_RATE', reason: `${label} سالب` };
+  }
+  return null;
+}
+
+/* ------------------------------ الحسابات ------------------------------ */
+
 /**
  * سعر الهدف في سنة معيّنة بناءً على التضخم (عكس التضخم من سعر النهارده).
- * goalAtYear = goalToday * cpi[year] / cpi[latestYear]
+ * goalAtYear = goalToday * cpi[year] / cpi[current]
  */
 export function goalPriceAtYear(goalToday, year, data) {
-  const latestYear = getLatestYear(data);
-  const cpiYear = num(data.yearly[year]?.cpi_index, `cpi_index[${year}]`);
-  const cpiLatest = num(
-    data.yearly[latestYear]?.cpi_index,
-    `cpi_index[${latestYear}]`
-  );
-  return (goalToday * cpiYear) / cpiLatest;
+  const cpiYear = num(data.annual[year]?.cpi_index, `annual.${year}.cpi_index`);
+  const cpiNow = num(getCurrent(data).cpi_index, 'current.cpi_index');
+  return (goalToday * cpiYear) / cpiNow;
 }
 
 /**
@@ -99,35 +182,23 @@ export function goalPriceAtYear(goalToday, year, data) {
  */
 export function cashPath(goalToday, startYear, data, goalAtStartOverride = null) {
   const goalAtStart =
-    goalAtStartOverride != null
-      ? goalAtStartOverride
-      : goalPriceAtYear(goalToday, startYear, data);
-  const valueToday = goalAtStart; // كاش واقف — مفيش تغيّر اسمي
-  return buildResult('cash', goalAtStart, valueToday, goalToday);
+    goalAtStartOverride != null ? goalAtStartOverride : goalPriceAtYear(goalToday, startYear, data);
+  return buildResult('cash', goalAtStart, goalAtStart, goalToday);
 }
 
 /**
- * مسار الشهادة البنكية:
- * goalAtStart مركّب بعائد الشهادات سنة بسنة لحد النهارده.
+ * مسار الشهادة البنكية التمثيلية:
+ * goalAtStart مركّب بعائد الشهادات سنة بسنة من startYear لحد latest_complete_year
+ * (ضمناً)، بافتراض إعادة استثمار العائد سنوياً.
  */
-export function certificatePath(
-  goalToday,
-  startYear,
-  data,
-  goalAtStartOverride = null
-) {
-  const latestYear = getLatestYear(data);
+export function certificatePath(goalToday, startYear, data, goalAtStartOverride = null) {
+  const latest = getLatestCompleteYear(data);
   const goalAtStart =
-    goalAtStartOverride != null
-      ? goalAtStartOverride
-      : goalPriceAtYear(goalToday, startYear, data);
+    goalAtStartOverride != null ? goalAtStartOverride : goalPriceAtYear(goalToday, startYear, data);
 
   let valueToday = goalAtStart;
-  for (let y = startYear; y < latestYear; y++) {
-    const rate = num(
-      data.yearly[y]?.certificate_rate,
-      `certificate_rate[${y}]`
-    );
+  for (let y = startYear; y <= latest; y++) {
+    const rate = num(data.annual[y]?.certificate_rate, `annual.${y}.certificate_rate`);
     valueToday *= 1 + rate;
   }
   return buildResult('certificate', goalAtStart, valueToday, goalToday);
@@ -135,44 +206,33 @@ export function certificatePath(
 
 /**
  * مسار الذهب (حفظ قيمة):
- * goalAtStart اتحوّل جرامات سنة startYear، الجرامات قيمتها النهارده.
+ * goalAtStart اتحوّل جرامات بسعر سنة startYear، الجرامات قيمتها بسعر سبيكة الحالي.
  */
 export function goldPath(goalToday, startYear, data, goalAtStartOverride = null) {
-  const latestYear = getLatestYear(data);
   const goalAtStart =
-    goalAtStartOverride != null
-      ? goalAtStartOverride
-      : goalPriceAtYear(goalToday, startYear, data);
+    goalAtStartOverride != null ? goalAtStartOverride : goalPriceAtYear(goalToday, startYear, data);
 
-  const goldStart = num(
-    data.yearly[startYear]?.gold_gram_egp,
-    `gold_gram_egp[${startYear}]`
-  );
-  const goldToday = num(
-    data.yearly[latestYear]?.gold_gram_egp,
-    `gold_gram_egp[${latestYear}]`
-  );
+  const goldStart = num(data.annual[startYear]?.gold_gram_egp, `annual.${startYear}.gold_gram_egp`);
+  const goldNow = num(getCurrent(data).gold_gram_egp, 'current.gold_gram_egp');
   const grams = goalAtStart / goldStart;
-  const valueToday = grams * goldToday;
+  const valueToday = grams * goldNow;
   const result = buildResult('gold', goalAtStart, valueToday, goalToday);
   result.grams = grams;
   return result;
 }
 
 /**
- * بيحسب المسارات الثلاثة مرة واحدة.
- * بيرجّع { goalAtStart, paths: { cash, certificate, gold } }.
+ * بيحسب المسارات الثلاثة مرة واحدة بنفس goalAtStart.
  */
 export function computeJourney(goalToday, startYear, data, goalAtStartOverride = null) {
   const goalAtStart =
-    goalAtStartOverride != null
-      ? goalAtStartOverride
-      : goalPriceAtYear(goalToday, startYear, data);
+    goalAtStartOverride != null ? goalAtStartOverride : goalPriceAtYear(goalToday, startYear, data);
 
   return {
     goalToday,
     startYear,
-    latestYear: getLatestYear(data),
+    latestCompleteYear: getLatestCompleteYear(data),
+    currentPeriod: data.meta?.current_period ?? null,
     goalAtStart,
     paths: {
       cash: cashPath(goalToday, startYear, data, goalAtStart),
@@ -183,16 +243,16 @@ export function computeJourney(goalToday, startYear, data, goalAtStartOverride =
 }
 
 /**
- * متوسط التضخم السنوي للسنوات الأخيرة، محسوب من سلسلة cpi نفسها.
+ * متوسط التضخم السنوي لآخر سنوات مكتملة، محسوب من سلسلة cpi نفسها.
  * lookback = عدد السنوات الأخيرة اللي ناخد متوسطها (افتراضي 3).
- * بيرجّع كسر عشري (0.25 يعني 25%).
+ * بيرجّع كسر عشري (0.25 = 25%).
  */
 export function averageInflation(data, lookback = 3) {
   const years = getYears(data);
   const rates = [];
   for (let i = years.length - 1; i >= 1 && rates.length < lookback; i--) {
-    const cur = data.yearly[years[i]]?.cpi_index;
-    const prev = data.yearly[years[i - 1]]?.cpi_index;
+    const cur = data.annual[years[i]]?.cpi_index;
+    const prev = data.annual[years[i - 1]]?.cpi_index;
     if (cur == null || prev == null || prev === 0) continue;
     rates.push(cur / prev - 1);
   }
@@ -203,12 +263,9 @@ export function averageInflation(data, lookback = 3) {
 }
 
 /**
- * الإسقاط المستقبلي — توضيحي فقط.
+ * الإسقاط المستقبلي — سيناريو توضيحي فقط.
  * بيرجّع المسافة اللي بتكبر بين الكاش الواقف (goalToday) والهدف الماشي.
- * مفيش أي رقم عائد ذهب مستقبلي — ده مقصود ومحمي بقيود البراند.
- *
- * بيرجّع array لكل سنة فيها:
- *   { yearOffset, goalPrice, cashCovers (نسبة الكاش من الهدف) }
+ * مفيش أي رقم عائد ذهب/فضة مستقبلي — ده مقصود ومحمي بقيود البراند.
  */
 export function projectFuture(goalToday, data, { yearsAhead = 5, lookback = 3 } = {}) {
   const avgInfl = averageInflation(data, lookback);
@@ -221,17 +278,11 @@ export function projectFuture(goalToday, data, { yearsAhead = 5, lookback = 3 } 
       cashCovers: goalToday / goalPrice, // نسبة الكاش الثابت من الهدف الماشي
     });
   }
-  return { avgInflation: avgInfl, yearsAhead, points };
+  return { avgInflation: avgInfl, yearsAhead, lookback, points };
 }
 
 /* ------------------------------- helpers -------------------------------- */
 
-/**
- * بيبني نتيجة مسار موحّدة:
- *  - share: نسبة القيمة النهارده من سعر الهدف النهارده (0..1، ممكن > 1)
- *  - sharePct: نفس النسبة كـ %
- *  - coversFull: هل بيغطي الهدف كامل؟
- */
 function buildResult(key, goalAtStart, valueToday, goalToday) {
   const share = valueToday / goalToday;
   return {
