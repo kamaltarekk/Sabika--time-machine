@@ -18,7 +18,7 @@ npm test         # اختبارات calc.js (Vitest)
 ## البنية
 
 ```
-public/assets/sabika-logo.svg   ← لوجو placeholder (استبدله بالرسمي)
+public/assets/sabika-logo.png   ← لوجو سبيكة الرسمي (مستخرج من splash التطبيق)
 src/
   data/economic-data.json       ← مصدر الحقيقة الوحيد للأرقام (placeholder دلوقتي)
   lib/calc.js                   ← المنطق الحسابي + التحقق، دوال نقية
@@ -89,6 +89,8 @@ src/
    عائد شهادات NBE/Banque Misr التمثيلي + CBE sanity check + `current` + `sources` +
    `last_updated` + `current_period` → وحوّل `is_placeholder` لـ **`false`**.
 2. **`src/config.js`**: الـ Adjust click URL في `CTA.installUrl`.
-3. **`public/assets/sabika-logo.svg`**: استبدله باللوجو الرسمي.
-4. **`src/styles.css`**: استبدل الـ palette التقريبي بالألوان الرسمية.
-5. راجع نصوص الكارت، واختبر على موبايل حقيقي (RTL + المشاركة).
+3. **`src/styles.css`**: استبدل الـ palette التقريبي بالألوان الرسمية (اختياري).
+4. راجع نصوص الكارت، واختبر على موبايل حقيقي (RTL + المشاركة).
+
+> اللوجو الرسمي (`public/assets/sabika-logo.png`) متحط بالفعل، مستخرج من splash
+> التطبيق بخلفية شفافة. لو عندك نسخة vector أنضف (SVG)، استبدله بيها.

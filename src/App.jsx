@@ -15,7 +15,7 @@ import Disclaimer, { GoldPriceNote, CertificateNote } from './components/Disclai
 import PathBar from './components/PathBar.jsx';
 import ShareCard from './components/ShareCard.jsx';
 
-const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.svg`;
+const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.png`;
 const STEPS = ['goal', 'price', 'year', 'past', 'future', 'card', 'cta'];
 
 export default function App() {

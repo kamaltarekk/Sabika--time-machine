@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatPct, formatEGP } from '../lib/format.js';
 
-const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.svg`;
+const LOGO_URL = `${import.meta.env.BASE_URL}assets/sabika-logo.png`;
 
 /**
  * الكارت القابل للمشاركة — هوية سبيكة نظيفة (gold/white).
@@ -127,8 +127,19 @@ async function ensureFontsLoaded() {
   }
 }
 
+/** بيحمّل صورة (للوجو) ويرجّعها، أو null لو فشل التحميل. */
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 /** بيرسم الكارت على canvas ويرجّع Blob لصورة PNG. */
-function renderCardPNG({ journey, goalLabel, ratio }) {
+async function renderCardPNG({ journey, goalLabel, ratio }) {
+  const logo = await loadImage(LOGO_URL);
   return new Promise((resolve) => {
     const dims = ratio === 'square' ? { w: 1080, h: 1080 } : { w: 1080, h: 1920 };
     const canvas = document.createElement('canvas');
@@ -155,11 +166,18 @@ function renderCardPNG({ journey, goalLabel, ratio }) {
     let y = ratio === 'square' ? 150 : 340;
     const font = (size, weight = '700') => `${weight} ${size}px Cairo, sans-serif`;
 
-    // البراند (wordmark نصي — اللوجو الكامل في المعاينة HTML)
-    ctx.fillStyle = C.gold;
-    ctx.font = font(72, '900');
-    ctx.fillText('سبيكة', cx, y);
-    y += 120;
+    // اللوجو الحقيقي فوق (أو fallback نصي لو فشل تحميله)
+    if (logo && logo.width) {
+      const lw = 360;
+      const lh = (logo.height / logo.width) * lw;
+      ctx.drawImage(logo, cx - lw / 2, y - 60, lw, lh);
+      y += lh + 40;
+    } else {
+      ctx.fillStyle = C.gold;
+      ctx.font = font(72, '900');
+      ctx.fillText('سبيكة', cx, y);
+      y += 120;
+    }
 
     // السؤال
     ctx.fillStyle = C.text;
