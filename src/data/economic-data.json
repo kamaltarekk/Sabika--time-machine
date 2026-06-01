@@ -1,43 +1,134 @@
 {
   "meta": {
-    "last_updated": "<<<FILL: تاريخ آخر تحديث للبيانات>>>",
+    "last_updated": "2026-06-02",
     "latest_complete_year": 2025,
-    "current_period": "<<<FILL: الفترة الحالية، مثلاً 2026-Q2 أو يونيو 2026>>>",
-    "is_placeholder": true,
-    "schema_notes": "cpi_index is an INDEX value (e.g. 100, 250.3), NOT an annual inflation percentage. Do not enter 0.18 or 18 here. certificate_rate and cbe_rate_sanity_check are DECIMAL fractions: 0.18 = 18%. Do not enter 18. gold_source_type / silver_source_type must be exactly 'external_reconstructed' or 'sabika_reference'. For external_reconstructed years: gold_gram_egp = gold_oz_usd × usd_egp / 31.1035 (World Gold Council + CBE historical USD/EGP); silver_price_egp = silver_oz_usd × usd_egp / 31.1035 (World Bank Pink Sheet + CBE historical USD/EGP). Current prices are always sabika_reference. Silver is future-ready in the schema and is NOT a UI path in v1.",
+    "current_period": "2026-06-02",
+    "is_placeholder": false,
+    "review_status": "reference_v0_1_needs_business_review_before_paid_media",
     "sources": {
-      "inflation": "<<<FILL: مصدر الرقم القياسي للأسعار CPI، مثلاً البنك المركزي المصري CBE>>>",
-      "gold_price_egp": "For external_reconstructed years: World Gold Council global gold price converted to EGP using CBE historical USD/EGP exchange rates (gold_oz_usd × usd_egp / 31.1035). For sabika_reference years: Sabika.app / internal Sabika historical reference prices.",
-      "silver_price_egp": "For external_reconstructed years: World Bank Pink Sheet global silver commodity price converted to EGP using CBE historical USD/EGP exchange rates (silver_oz_usd × usd_egp / 31.1035). For sabika_reference years: Sabika.app / internal Sabika historical reference prices.",
-      "bank_certificate": "<<<FILL: NBE/Banque Misr public certificate announcements / archived product pages>>>",
-      "cbe_rate_sanity_check": "<<<FILL: CBE historical interest-rate data>>>",
-      "usd_egp": "<<<FILL: CBE historical USD/EGP average exchange rates used for external_reconstructed price conversion>>>"
+      "inflation": "World Bank/FRED annual CPI inflation for 2019-2024; 2025 provisional from IMF/WEO-style published estimate; CPI index reconstructed with 2018=100.",
+      "current_cpi": "Trading Economics/CAPMAS/CBE reported CPI points, April 2026 used as current CPI reference.",
+      "gold_price_egp": "2018-2025 external reconstructed from DataHub/World Bank Commodity Markets annual gold USD/oz × official USD/EGP average / 31.1035; current from Sabika manual app reference.",
+      "silver_price_egp": "2018-2025 external reconstructed from published annual silver USD/oz × official USD/EGP average / 31.1035; current silver not used in v1.",
+      "usd_egp": "World Bank official exchange rate annual average where available; 2025 from CEIC/World Bank GEM published annual average.",
+      "bank_certificate": "Representative NBE/Banque Misr public certificate rates by year; requires final business/source review before public launch.",
+      "cbe_rate_sanity_check": "CBE historical interest-rate data used internally as a reasonableness check, not customer-facing."
     },
     "methodology": {
-      "inflation": "Annual average CPI index from official CPI data. Current CPI = latest published monthly CPI.",
-      "gold_price": "For years before Sabika historical/internal pricing is available (gold_source_type = 'external_reconstructed'): gold is calculated as an external reconstructed reference price using World Gold Council global gold price converted to EGP using CBE historical USD/EGP exchange rates (gold_gram_egp = gold_oz_usd × usd_egp / 31.1035). From the date Sabika historical data is available onward (gold_source_type = 'sabika_reference'): Sabika.app / internal Sabika reference 24k gram prices are used. Current gold = current Sabika reference price. All prices are reference prices only — not execution prices.",
-      "silver_price": "For years before Sabika historical/internal pricing is available (silver_source_type = 'external_reconstructed'): silver is calculated as an external reconstructed reference price using World Bank Pink Sheet / global silver commodity price converted to EGP using CBE historical USD/EGP exchange rates (silver_gram_egp = silver_oz_usd × usd_egp / 31.1035). From the date Sabika historical data is available onward (silver_source_type = 'sabika_reference'): Sabika.app / internal Sabika reference prices are used. All prices are reference prices only.",
-      "bank_certificate": "Representative EGP certificate path based on the most relevant/flagship NBE and Banque Misr public certificates available during each year, annualized, assuming yearly reinvestment.",
-      "cbe_rate_sanity_check": "CBE interest-rate data used internally as a sanity check only, not as the customer-facing certificate path."
-    }
+      "inflation": "Reconstructed CPI index with 2018=100 using annual consumer-price inflation rates. This is an index value, not an annual inflation percentage.",
+      "gold_price": "Before Sabika historical prices are available, gold is calculated as external reconstructed reference price: annual gold USD/oz × annual average USD/EGP ÷ 31.1035. Current gold uses Sabika manual reference.",
+      "silver_price": "Before Sabika historical prices are available, silver is calculated as external reconstructed reference price: annual silver USD/oz × annual average USD/EGP ÷ 31.1035. Silver is future-ready and optional in v1 unless enabled in UI.",
+      "bank_certificate": "Representative EGP certificate path based on notable NBE/Banque Misr certificates, annualized, assuming yearly reinvestment. certificate_rate is decimal, e.g. 0.18 = 18%.",
+      "source_labeling": "external_reconstructed prices must be displayed as reference prices, not Sabika execution prices."
+    },
+    "notes": [
+      "Do not present external_reconstructed years as Sabika execution prices.",
+      "Do not promise future gold/silver returns.",
+      "Gold path is active in v1. Silver data is included as future-ready; do not block v1 if silver path is disabled.",
+      "Certificate rates for 2018-2022 should be audited against archived NBE/Banque Misr pages before final paid launch."
+    ]
   },
   "annual": {
-    "2018": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2019": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2020": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2021": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2022": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2023": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2024": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null },
-    "2025": { "cpi_index": null, "gold_gram_egp": null, "gold_source_type": "external_reconstructed", "silver_price_egp": null, "silver_source_type": "external_reconstructed", "certificate_rate": null, "cbe_rate_sanity_check": null }
+    "2018": {
+      "cpi_index": 100.0,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 725.01,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 8.97,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.15,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.1675
+    },
+    "2019": {
+      "cpi_index": 109.153,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 750.83,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 8.74,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.15,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.1225
+    },
+    "2020": {
+      "cpi_index": 114.66,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 896.92,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 10.4,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.12,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.0825
+    },
+    "2021": {
+      "cpi_index": 120.638,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 905.21,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 12.65,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.11,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.0825
+    },
+    "2022": {
+      "cpi_index": 137.402,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 1109.59,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 13.41,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.18,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.1625
+    },
+    "2023": {
+      "cpi_index": 183.96,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 1912.84,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 23.04,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.25,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.1925
+    },
+    "2024": {
+      "cpi_index": 235.966,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 3475.75,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 41.2,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.27,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.2725
+    },
+    "2025": {
+      "cpi_index": 284.151,
+      "cpi_source_type": "reconstructed_from_annual_inflation",
+      "gold_gram_egp": 5590.77,
+      "gold_source_type": "external_reconstructed",
+      "silver_price_egp": 62.64,
+      "silver_source_type": "external_reconstructed",
+      "certificate_rate": 0.235,
+      "certificate_source_type": "representative_nbe_banque_misr",
+      "cbe_rate_sanity_check": 0.225
+    }
   },
   "current": {
-    "cpi_index": null,
-    "gold_gram_egp": null,
-    "gold_source_type": "sabika_reference",
+    "cpi_index": 287.0,
+    "cpi_source_type": "current_reported_cpi_points",
+    "gold_gram_egp": 7617.9,
+    "gold_buy_egp": 7657.9,
+    "gold_sell_egp": 7577.9,
+    "gold_source_type": "sabika_reference_manual",
     "silver_price_egp": null,
-    "silver_source_type": "sabika_reference",
-    "certificate_rate": null,
-    "cbe_rate_sanity_check": null
+    "silver_source_type": "not_enabled_in_v1",
+    "certificate_rate": 0.235,
+    "certificate_source_type": "representative_current_certificate",
+    "cbe_rate_sanity_check": 0.225
   }
 }

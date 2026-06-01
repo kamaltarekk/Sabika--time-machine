@@ -83,14 +83,22 @@ src/
 دافئ، زرار CTA ذهبي بنص داكن). الألوان في `:root` داخل `src/styles.css` **تقريبية**
 وعليها `TODO` لاستبدالها بالألوان الرسمية.
 
-## مسؤوليتك قبل النشر (أماكن `FILL` / `TODO`)
+## حالة الجاهزية
 
-1. **`src/data/economic-data.json`**: CPI index + أسعار سبيكة للذهب (والفضة لاحقًا) +
-   عائد شهادات NBE/Banque Misr التمثيلي + CBE sanity check + `current` + `sources` +
-   `last_updated` + `current_period` → وحوّل `is_placeholder` لـ **`false`**.
-2. **`src/config.js`**: الـ Adjust click URL في `CTA.installUrl`.
-3. **`src/styles.css`**: استبدل الـ palette التقريبي بالألوان الرسمية (اختياري).
-4. راجع نصوص الكارت، واختبر على موبايل حقيقي (RTL + المشاركة).
+- ✅ **`economic-data.json`** متملّي بـ reference data **v0.1** (2018→2025 +
+  `current`), `is_placeholder = false`، والـ validation بتعدّي والنتائج بتظهر.
+- ✅ **`CTA.installUrl`** = Adjust link الفعلي.
+- ✅ **اللوجو الرسمي** في `public/assets/sabika-logo.png`.
 
-> اللوجو الرسمي (`public/assets/sabika-logo.png`) متحط بالفعل، مستخرج من splash
-> التطبيق بخلفية شفافة. لو عندك نسخة vector أنضف (SVG)، استبدله بيها.
+### قبل الـ paid launch (مش blockers، بس مراجعة مطلوبة)
+
+1. **`certificate_rate` لسنوات 2018–2022** reference values — محتاجة مراجعة
+   business/source مقابل أرشيف NBE/Banque Misr قبل أي حملة مدفوعة.
+2. أسعار الذهب/الفضة التاريخية `external_reconstructed` — تتحوّل لـ
+   `sabika_reference` لما بيانات سبيكة التاريخية تتوفر.
+3. **`src/styles.css`**: استبدال الـ palette التقريبي بالألوان الرسمية (اختياري).
+4. اختبار على موبايل حقيقي (RTL + المشاركة).
+
+> ملاحظة: الـ data pack ده v0.1 reference data — مش placeholder. الأسعار التاريخية
+> مصدرها خارجي مُعاد بناؤه (World Gold Council/World Bank + CBE USD/EGP)، والسعر
+> الحالي مرجع سبيكة. متُعرضش الأسعار الخارجية كأسعار تنفيذ من سبيكة.
