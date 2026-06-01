@@ -18,6 +18,7 @@ export default function ShareCard({ journey, goalLabel, disabled }) {
     if (disabled) return;
     setBusy(true);
     try {
+      await ensureFontsLoaded();
       const blob = await renderCardPNG({ journey, goalLabel, ratio });
       const file = new File([blob], 'sabika-card.png', { type: 'image/png' });
 
@@ -107,6 +108,27 @@ const COLORS = {
   rowBg: 'rgba(255,255,255,0.04)',
   goldRowBg: 'rgba(212,175,55,0.14)',
 };
+
+/**
+ * بيتأكد إن خط Cairo متحمّل قبل الرسم على الـ canvas — عشان الصورة المتشاركة
+ * تطلع بالخط الصح مش fallback (مهم على الموبايل لأن الخط بيتحمّل async).
+ */
+async function ensureFontsLoaded() {
+  if (typeof document === 'undefined' || !document.fonts || !document.fonts.load) {
+    return;
+  }
+  try {
+    await Promise.all([
+      document.fonts.load('900 64px Cairo'),
+      document.fonts.load('800 72px Cairo'),
+      document.fonts.load('700 48px Cairo'),
+      document.fonts.load('400 28px Cairo'),
+    ]);
+    await document.fonts.ready;
+  } catch {
+    // لو فشل التحميل، بنكمّل بالخط الافتراضي بدل ما نوقف المشاركة
+  }
+}
 
 /** بيرسم الكارت على canvas ويرجّع Blob لصورة PNG. */
 function renderCardPNG({ journey, goalLabel, ratio }) {
