@@ -12,7 +12,7 @@ export const CTA = {
   // FILL: Adjust click URL — مثال:
   // https://app.adjust.com/XXXXXX?campaign=elli_maak&adgroup=...&creative=...
   // (Play Store URL يتحط كـ fallback جوّه Adjust، مش هنا)
-  installUrl: '<<<FILL: Adjust click URL>>>',
+  installUrl: 'https://sabika.go.link/l9zxN',
   packageName: 'com.sabika.app',
 };
 
